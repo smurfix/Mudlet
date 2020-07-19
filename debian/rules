@@ -10,6 +10,8 @@
 #export DH_VERBOSE=1
 export QT_SELECT=5
 export CCACHE_DIR := $(CURDIR)/debian/ccache
+export PREFIX=/usr
+export INSTALL_ROOT="$(CURDIR)/debian/mudlet"
 
 PACKAGE=mudlet
 SRC_VERSION:=$(shell dpkg-parsechangelog | sed -ne 's/^Version: \(\([0-9]\+\):\)\?\(.*\)-.*/\3/p')
@@ -51,3 +53,6 @@ get-orig-source:
 		rm -rf yajl fonts hunspell en_US.aff en_US.dic
 	tar cvfz $(TARBALL) -C get-orig-source $(PACKAGE)-$(SRC_VERSION).orig
 	rm -rf get-orig-source
+
+override_dh_auto_test:
+	: do nothing yet
