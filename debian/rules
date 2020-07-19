@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+export QT_SELECT=5
+export CCACHE_DIR := $(CURDIR)/debian/ccache
+
+PACKAGE=mudlet
+SRC_VERSION:=$(shell dpkg-parsechangelog | sed -ne 's/^Version: \(\([0-9]\+\):\)\?\(.*\)-.*/\3/p')
+TARBALL=$(PACKAGE)_$(SRC_VERSION).orig.tar.gz
+BUILD_VERSION=$(shell dpkg-parsechangelog -SVersion | sed -e 's/[^-]*/Debian/')
+
+%:
+	dh $@ 
+
+override_dh_auto_clean:
+	[ ! -f src/Makefile ] || $(MAKE) -C src distclean
+
+override_dh_auto_configure:
+	cd src && qmake \
+		DATAROOTDIR=/usr/share/games
+		QMAKE_CFLAGS_RELEASE="$(shell dpkg-buildflags --get CPPFLAGS) $(shell dpkg-buildflags --get CFLAGS)" \
+		QMAKE_CFLAGS_DEBUG="$(shell dpkg-buildflags --get CPPFLAGS) $(shell dpkg-buildflags --get CFLAGS)" \
+		QMAKE_CXXFLAGS_RELEASE="$(shell dpkg-buildflags --get CPPFLAGS) $(shell dpkg-buildflags --get CFLAGS)" \
+		QMAKE_CXXFLAGS_DEBUG="$(shell dpkg-buildflags --get CPPFLAGS) $(shell dpkg-buildflags --get CFLAGS)" \
+		QMAKE_LFLAGS_RELEASE="$(shell dpkg-buildflags --get LDFLAGS)"  \
+		QMAKE_LFLAGS_DEBUG="$(shell dpkg-buildflags --get LDFLAGS)" \
+		MUDLET_VERSION_BUILD=$(BUILD_VERSION) \
+		WITH_UPDATER="no"
+
+override_dh_auto_build:
+	make -C src
+
+override_dh_install:
+	dh_install
+	chmod a-x debian/mudlet/usr/share/games/mudlet/lua/*.lua
+	chmod a-x debian/mudlet/usr/share/games/mudlet/lua/geyser/*.lua
+
+get-orig-source:
+	rm -rf get-orig-source $(TARBALL)
+	mkdir -p get-orig-source/$(PACKAGE)-$(SRC_VERSION).orig
+	wget -O get-orig-source/upstream.tgz "http://mudlet.git.sourceforge.net/git/gitweb.cgi?p=mudlet/mudlet;a=snapshot;h=HEAD;sf=tgz"
+	cd get-orig-source && tar xfz upstream.tgz -C $(PACKAGE)-$(SRC_VERSION).orig --strip-components=1
+	cd get-orig-source/$(PACKAGE)-$(SRC_VERSION).orig/src && \
+		rm -rf yajl fonts hunspell en_US.aff en_US.dic
+	tar cvfz $(TARBALL) -C get-orig-source $(PACKAGE)-$(SRC_VERSION).orig
+	rm -rf get-orig-source

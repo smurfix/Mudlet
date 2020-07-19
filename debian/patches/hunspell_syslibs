@@ -1,0 +1,25 @@
+Description: Use system includes for hunspell
+Author: Craig Small <csmall@debian.org>
+Last-Update: 2011-01-16
+--- a/src/TCommandLine.cpp
++++ b/src/TCommandLine.cpp
+@@ -23,7 +23,7 @@
+ #include "TTextEdit.h"
+ #include <QPlainTextEdit>
+ #include "TSplitter.h"
+-#include <hunspell/hunspell.h>
++#include <hunspell.h>
+ 
+ TCommandLine::TCommandLine( Host * pHost, TConsole * pConsole, QWidget * parent )
+ : QPlainTextEdit( parent )
+--- a/src/TCommandLine.h
++++ b/src/TCommandLine.h
+@@ -31,7 +31,7 @@
+ #include "TCommandLine.h"
+ #include "Host.h"
+ #include <QPlainTextEdit>
+-#include <hunspell/hunspell.h>
++#include <hunspell.h>
+ 
+ class TConsole;
+ class KeyUnit;
