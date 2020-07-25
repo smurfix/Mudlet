@@ -71,6 +71,7 @@ TRoom::TRoom(TRoomDB* pRDB)
 , max_x(0)
 , max_y(0)
 , mSymbol(QString())
+, nameOffset(0, 0)
 , highlight(false)
 , highlightColor(QColor(255, 150, 0))
 , rendered(false)
@@ -799,6 +800,12 @@ void TRoom::restore(QDataStream& ifs, int roomID, int version)
             ifs >> customLinesArrow;
             ifs >> customLinesColor;
             ifs >> customLinesStyle;
+            if (version >= 21) {
+                qreal x, y;
+                ifs >> x;
+                ifs >> y;
+                nameOffset = QPointF(x, y);
+            }
         } else {
             QMap<QString, QList<QPointF>> oldLinesData;
             ifs >> oldLinesData;
