@@ -3401,7 +3401,7 @@ int TLuaInterpreter::setFont(lua_State* L)
         font = QString::fromUtf8(lua_tostring(L, s));
     }
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // On Linux ensure that emojis are displayed in colour even if this font
     // doesn't support it:
     QFont::insertSubstitution(font, QStringLiteral("Noto Color Emoji"));
@@ -14582,7 +14582,7 @@ int TLuaInterpreter::getOS(lua_State* L)
     lua_pushstring(L, "windows");
 #elif defined(Q_OS_MACOS)
     lua_pushstring(L, "mac");
-#elif defined(Q_OS_LINUX)
+#elif defined(__GLIBC__)
     lua_pushstring(L, "linux");
 #elif defined(Q_OS_HURD)
     // One can hope/dream!
@@ -17019,7 +17019,7 @@ void TLuaInterpreter::initLuaGlobals()
 
     luaL_dostring(pGlobalLua, QStringLiteral("package.cpath = [[%1%2?;]] .. package.cpath").arg(nativeHomeDirectory, separator).toUtf8().constData());
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // if using LuaJIT, adjust the cpath to look in /usr/lib as well - it doesn't by default
     luaL_dostring(pGlobalLua, "if jit then package.cpath = package.cpath .. ';/usr/lib/lua/5.1/?.so;/usr/lib/x86_64-linux-gnu/lua/5.1/?.so' end");
 

@@ -1,4 +1,3 @@
 project_file
 qrc_removedups
-freebsd_ifdef
 QTabBar-include.patch

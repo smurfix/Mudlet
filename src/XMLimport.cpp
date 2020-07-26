@@ -1050,7 +1050,7 @@ void XMLimport::readHostPackage(Host* pHost)
                 pHost->mLightWhite.setNamedColor(readElementText());
             } else if (name() == "mDisplayFont") {
                 pHost->setDisplayFontFromString(readElementText());
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
                 // On Linux ensure that emojis are displayed in colour even if
                 // this font doesn't support it:
                 QFont::insertSubstitution(pHost->mDisplayFont.family(), QStringLiteral("Noto Color Emoji"));

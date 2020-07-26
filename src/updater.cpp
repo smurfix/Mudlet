@@ -68,7 +68,7 @@ void Updater::checkUpdatesOnStart()
 {
 #if defined(Q_OS_MACOS)
     setupOnMacOS();
-#elif defined(Q_OS_LINUX)
+#elif defined(__GLIBC__)
     setupOnLinux();
 #elif defined(Q_OS_WIN32)
     setupOnWindows();
@@ -135,7 +135,7 @@ void Updater::showChangelog() const
 
 void Updater::finishSetup()
 {
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     qWarning() << "Successfully updated Mudlet to" << feed->getUpdates(dblsqd::Release::getCurrentRelease()).constFirst().getVersion();
 #elif defined(Q_OS_WIN32)
     qWarning() << "Mudlet prepped to update to" << feed->getUpdates(dblsqd::Release::getCurrentRelease()).first().getVersion() << "on restart";
@@ -216,7 +216,7 @@ void Updater::prepareSetupOnWindows(const QString& downloadedSetupName)
 }
 #endif // Q_OS_WIN
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
 void Updater::setupOnLinux()
 {
     // Setup to automatically download the new release when an update is
@@ -307,7 +307,7 @@ void Updater::updateBinaryOnLinux()
 
     finishSetup();
 }
-#endif // Q_OS_LINUX
+#endif // __GLIBC__
 
 void Updater::installOrRestartClicked(QAbstractButton* button, const QString& filePath)
 {
@@ -335,7 +335,7 @@ void Updater::installOrRestartClicked(QAbstractButton* button, const QString& fi
     }
 
 // otherwise the button says 'Install', so install the update
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     QFuture<void> future = QtConcurrent::run(this, &Updater::untarOnLinux, filePath);
 #elif defined(Q_OS_WIN32)
     QFuture<void> future = QtConcurrent::run(this, &Updater::prepareSetupOnWindows, filePath);
@@ -344,7 +344,7 @@ void Updater::installOrRestartClicked(QAbstractButton* button, const QString& fi
     // replace current binary with the unzipped one
     auto watcher = new QFutureWatcher<void>;
     connect(watcher, &QFutureWatcher<void>::finished, this, [=]() {
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
         updateBinaryOnLinux();
 #elif defined(Q_OS_WIN32)
         finishSetup();
