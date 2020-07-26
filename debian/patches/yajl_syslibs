@@ -1,0 +1,13 @@
+Description: Use system includes for yajl
+Author: Craig Small <csmall@debian.org>
+Last-Update: 2011-01-16
+--- a/src/lua_yajl.c
++++ b/src/lua_yajl.c
+@@ -1,5 +1,5 @@
+-#include "yajl/api/yajl_parse.h"
+-#include "yajl/api/yajl_gen.h"
++#include <yajl/yajl_parse.h>
++#include <yajl/yajl_gen.h>
+ #include "lua.h"
+ #include "lauxlib.h"
+ #include <math.h>

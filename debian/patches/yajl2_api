@@ -1,0 +1,36 @@
+Description: yajl 2.0 API changes
+Author: John Stamp <jstamp@users.sourceforge.net>
+Bug-Debian: http://bugs.debian.org/653880
+--- a/src/TLuaInterpreter.cpp
++++ b/src/TLuaInterpreter.cpp
+@@ -41,7 +41,7 @@
+ //#ifdef Q_OS_WIN32
+ //    #include "lua_yajl.c"
+ //#else
+-    #include "lua_yajl1.c"
++    #include "lua_yajl.c"
+ //#endif
+ 
+ extern "C"
+--- a/src/lua_yajl.c
++++ b/src/lua_yajl.c
+@@ -590,7 +590,7 @@
+     } else if ( num == -HUGE_VAL ) {
+         str = "-1e+666";
+         len = 7;
+-    } else if ( _isnan(num) ) {
++    } else if ( isnan(num) ) {
+         str = "-0"; 
+         len = 2;
+    } else {
+--- a/src/src.pro
++++ b/src/src.pro
+@@ -100,7 +100,7 @@
+     dlgMapper.cpp \
+     TRoom.cpp \
+     TMap.cpp \
+-    lua_yajl1.c \
++    lua_yajl.c \
+     TBuffer.cpp \
+     irc/src/ircbuffer.cpp \
+     irc/src/irc.cpp \
