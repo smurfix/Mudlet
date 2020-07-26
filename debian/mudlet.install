@@ -1,0 +1,6 @@
+src/mudlet usr/games
+src/mudlet-lua/lua/*.lua usr/share/games/mudlet/lua
+src/mudlet-lua/lua/geyser usr/share/games/mudlet/lua
+mudlet.desktop usr/share/applications
+src/icons/mudlet.png usr/share/pixmaps
+debian/mudlet.xpm usr/share/pixmaps

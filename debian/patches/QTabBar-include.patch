@@ -1,0 +1,22 @@
+From: Markus Koschany <apo@debian.org>
+Date: Sun, 9 Dec 2018 15:11:33 +0100
+Subject: QTabBar include
+
+Bug-Debian: https://bugs.debian.org/907159
+Forwarded: no
+---
+ src/TCommandLine.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/TCommandLine.cpp b/src/TCommandLine.cpp
+index 416e9ad..3a69da2 100644
+--- a/src/TCommandLine.cpp
++++ b/src/TCommandLine.cpp
+@@ -34,6 +34,7 @@
+ #include <QMenu>
+ #include <QRegularExpression>
+ #include "post_guard.h"
++#include <QTabBar>
+ 
+ 
+ TCommandLine::TCommandLine(Host* pHost, TConsole* pConsole, QWidget* parent)
