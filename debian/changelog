@@ -1,6 +1,5 @@
-mudlet (1:4.9.1+git1-1) experimental; urgency=medium
+mudlet (1:4.9.1-1) stable; urgency=medium
 
-  * Hijacked.
   * Updated dependencies.
   * yajl replaced with cjson.
 
