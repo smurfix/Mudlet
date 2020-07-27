@@ -1,8 +1,9 @@
-mudlet (1:4.9.1+git1-1) experimental; urgency=medium
+mudlet (1:4.9.1+git1) experimental; urgency=medium
 
   * Hijacked.
   * Updated dependencies.
   * yajl replaced with cjson.
+  * Switching to native source format, external sources
 
  -- Matthias Urlichs <matthias@urlichs.de>  Sun, 19 Jul 2020 15:53:40 +0200
 
