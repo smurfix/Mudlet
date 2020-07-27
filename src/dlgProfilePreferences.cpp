@@ -1651,7 +1651,7 @@ void dlgProfilePreferences::setDisplayFont()
         label_variableWidthFontWarning->show();
     }
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // On Linux ensure that emojis are displayed in colour even if this font
     // doesn't support it:
     QFont::insertSubstitution(pHost->mDisplayFont.family(), QStringLiteral("Noto Color Emoji"));
