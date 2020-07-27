@@ -7,6 +7,7 @@ Build-Depends: debhelper (>= 9), pkg-config,
                libhunspell-dev, libpugixml-dev,
                qtbase5-dev, qt5-qmake, qttools5-dev, qtmultimedia5-dev,
                libqt5opengl5-dev, liblua5.1-0-dev, libzip-dev,
+               lua5.1, git,
 #libyajl-dev,
 Standards-Version: 4.1.2
 Vcs-Git: git://anonscm.debian.org/collab-maint/mudlet.git
