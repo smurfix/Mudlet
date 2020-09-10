@@ -1,3 +1,10 @@
+mudlet (1:4.9.1+git2) unstable; urgency=medium
+
+  * Moved to Unstable.
+  * restricted cjson dep to local build.
+
+ -- Matthias Urlichs <matthias@urlichs.de>  Thu, 10 Sep 2020 09:19:22 +0200
+
 mudlet (1:4.9.1+git1) experimental; urgency=medium
 
   * Hijacked.
