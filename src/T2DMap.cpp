@@ -98,6 +98,7 @@ T2DMap::T2DMap(QWidget* parent)
 , mMapInfoRect()
 , mFontHeight(20)
 , mShowRoomID(false)
+, mShowRoomName(false)
 , gzoom(20)
 , rSize(0.5)
 , eSize(3.0)
@@ -627,7 +628,7 @@ void T2DMap::addSymbolToPixmapCache(const QString key, const bool gridMode)
  * reduced by the margin (0-40) as a percentage). This margin is defaulted to
  * 10%.
  */
-bool T2DMap::sizeFontToFitTextInRect( QFont & font, const QRectF & boundaryRect, const QString & text, const quint8 percentageMargin )
+bool T2DMap::sizeFontToFitTextInRect( QFont & font, const QRectF & boundaryRect, const QString & text, const quint8 percentageMargin, qreal minFontSize )
 {
     QFont _font = font;
 
@@ -639,28 +640,28 @@ bool T2DMap::sizeFontToFitTextInRect( QFont & font, const QRectF & boundaryRect,
         return false;
     }
 
-    qreal fontSize = font.pointSizeF();
+    qreal fontSize = qMax(minFontSize, font.pointSizeF());  // protect against too-small initial value
     QRectF testRect(boundaryRect.width() * (100 - percentageMargin) / 200.0,
                     boundaryRect.height() * (100 - percentageMargin) / 200.0,
                     boundaryRect.width() * (100 - percentageMargin) / 100.0,
                     boundaryRect.height() * (100 - percentageMargin) / 100.);
-    // Increase the test font by one, then check to see that it does NOT fit
+
+    // Increase the test font (using somewhat-large steps) until it does not fit any more
     QRectF neededRect;
     QPixmap _pixmap(qRound(1.0 + boundaryRect.width()), qRound(1.0 + boundaryRect.height()));
     QPainter _painter(&_pixmap);
     do {
-        fontSize = fontSize + 1.0;
+        fontSize *= 1.2;
         _font.setPointSizeF(fontSize);
         _painter.setFont(_font);
 
         neededRect = _painter.boundingRect(testRect, Qt::AlignCenter | Qt::TextSingleLine | Qt::TextIncludeTrailingSpaces, text);
     } while (testRect.contains(neededRect));
 
-    // Now decrease until it does
+    // Now decrease (using smaller steps) until it fits again
     bool isSizeTooSmall = false;
-    static qreal minFontSize = 7.0;
     do {
-        fontSize = fontSize - 1.0;
+        fontSize /= 1.05;
         _font.setPointSizeF(fontSize);
         if (fontSize < minFontSize) {
             isSizeTooSmall = true;
@@ -701,16 +702,24 @@ void T2DMap::initiateSpeeWalk(const int speedWalkStartRoomId, const int speedWal
 // player's room if it is visible. This is so it is drawn LAST (and any effects,
 // or extra markings for it do not get overwritten by the drawing of the other
 // rooms)...
-inline void T2DMap::drawRoom(QPainter& painter, QFont& roomVNumFont, QPen& pen, TRoom* pRoom, const bool isGridMode, const bool areRoomIdsLegible, const int speedWalkStartRoomId, const float rx, const float ry, const bool picked)
+inline void T2DMap::drawRoom(QPainter& painter, QFont& roomVNumFont, QFont& roomVNameFont, QPen& pen, TRoom* pRoom, const bool isGridMode, const bool areRoomIdsLegible, const bool areRoomNamesLegible, const int speedWalkStartRoomId, const float rx, const float ry, const bool picked)
 {
     const int currentRoomId = pRoom->getId();
     pRoom->rendered = false;
     QRectF roomRectangle;
+    QRectF roomNameRectangle;
     if (isGridMode) {
         roomRectangle = QRectF(rx - mRoomWidth / 2.0, ry - mRoomHeight / 2.0, mRoomWidth, mRoomHeight);
     } else {
         roomRectangle = QRectF(rx - (mRoomWidth * rSize) / 2.0, ry - (mRoomHeight * rSize) / 2.0, mRoomWidth * rSize, mRoomHeight * rSize);
     }
+
+    roomNameRectangle = roomRectangle.adjusted(-2000, mRoomHeight, 2000, mRoomHeight);
+    painter.save();
+    painter.setFont(roomVNameFont);
+    roomNameRectangle = painter.boundingRect(roomNameRectangle, Qt::TextSingleLine|Qt::AlignTop|Qt::AlignCenter, pRoom->name);
+    painter.restore();
+
     // We should be using the full area for testing for clicks even though
     // we only show a smaller one if the user has dialed down the room size
     // on NON-grid mode areas:
@@ -899,6 +908,21 @@ inline void T2DMap::drawRoom(QPainter& painter, QFont& roomVNumFont, QPen& pen, 
             painter.restore();
         }
 
+    }
+    // Do we need to draw the room name:
+    if (mShowRoomName && areRoomNamesLegible && !isGridMode) {
+        painter.save();
+        QColor roomNameColor;
+        roomNameColor = QColor((mpHost->mBgColor_2.lightness() > 127)
+                               ? Qt::black : Qt::white);
+        roomNameRectangle.adjust(mRoomWidth * pRoom->nameOffset.x(),
+                                 mRoomHeight * pRoom->nameOffset.y(),
+                                 mRoomWidth * pRoom->nameOffset.x(),
+                                 mRoomHeight * pRoom->nameOffset.y());
+        painter.setPen(QPen(QColor(roomNameColor)));
+        painter.setFont(roomVNameFont);
+        painter.drawText(roomNameRectangle, Qt::AlignCenter, pRoom->name);
+        painter.restore();
     }
 
     // Change these from const to static to tweak them whilst running in a debugger...!
@@ -1227,6 +1251,13 @@ void T2DMap::paintEvent(QPaintEvent* e)
     mMapSymbolFont.setOverline(false);
     mMapSymbolFont.setStrikeOut(false);
 
+    mMapNameFont = mpMap->mMapNameFont;
+    mMapNameFont.setBold(false);
+    mMapNameFont.setItalic(false);
+    mMapNameFont.setUnderline(false);
+    mMapNameFont.setOverline(false);
+    mMapNameFont.setStrikeOut(false);
+
     QList<int> exitList;
     QList<int> oneWayExits;
     int playerRoomId = mpMap->mRoomIdHash.value(mpMap->mProfileName);
@@ -1289,6 +1320,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
     mRX = qRound(mRoomWidth * ((xspan / 2.0) - ox));
     mRY = qRound(mRoomHeight * ((yspan / 2.0) - oy));
     QFont roomVNumFont = mpMap->mMapSymbolFont;
+    QFont roomVNameFont = mpMap->mMapNameFont;
     bool isFontBigEnoughToShowRoomVnum = false;
     if (mShowRoomID) {
         /*
@@ -1320,7 +1352,20 @@ void T2DMap::paintEvent(QPaintEvent* e)
         // sizes (but we prevent that by checking in the method call afterwards):
         roomVNumFont.setStyleStrategy(QFont::StyleStrategy(QFont::PreferNoShaping|QFont::PreferAntialias|QFont::PreferOutline));
 
-        isFontBigEnoughToShowRoomVnum = sizeFontToFitTextInRect(roomVNumFont, roomTestRect, QStringLiteral("8").repeated(mMaxRoomIdDigits), roomVnumMargin);
+        isFontBigEnoughToShowRoomVnum = sizeFontToFitTextInRect(roomVNumFont, roomTestRect, QStringLiteral("8").repeated(mMaxRoomIdDigits), roomVnumMargin, 7.0);
+    }
+
+    bool isFontBigEnoughToShowRoomVname = false;
+    if (mShowRoomName) {
+        /*
+         * Like above, except that we use the room height as the font size.
+         */
+        roomVNameFont.setBold(true);
+
+        roomVNumFont.setStyleStrategy(QFont::StyleStrategy(QFont::PreferNoShaping|QFont::PreferAntialias|QFont::PreferOutline));
+
+        roomVNameFont.setPointSizeF(static_cast<qreal>(mRoomWidth) * rSize * pow(1.1, mpHost->mpMap->mMapNamesSizeAdj) / 2.0);
+        isFontBigEnoughToShowRoomVname = (roomVNameFont.pointSizeF() > 3.0);
     }
 
     TArea* pArea = playerArea;
@@ -1420,12 +1465,12 @@ void T2DMap::paintEvent(QPaintEvent* e)
             playerRoomOnWidgetCoordinates = QPointF(static_cast<qreal>(rx), static_cast<qreal>(ry));
         } else {
             // Not the player's room:
-            drawRoom(painter, roomVNumFont, pen, room, pArea->gridMode, isFontBigEnoughToShowRoomVnum, playerRoomId, rx, ry, __Pick);
+            drawRoom(painter, roomVNumFont, roomVNameFont, pen, room, pArea->gridMode, isFontBigEnoughToShowRoomVnum, isFontBigEnoughToShowRoomVname, playerRoomId, rx, ry, __Pick);
         }
     } // End of while loop for each room in area
 
     if (isPlayerRoomVisible) {
-        drawRoom(painter, roomVNumFont, pen, playerRoom, pArea->gridMode, isFontBigEnoughToShowRoomVnum, playerRoomId, static_cast<float>(playerRoomOnWidgetCoordinates.x()), static_cast<float>(playerRoomOnWidgetCoordinates.y()), __Pick);
+        drawRoom(painter, roomVNumFont, roomVNameFont, pen, playerRoom, pArea->gridMode, isFontBigEnoughToShowRoomVnum, isFontBigEnoughToShowRoomVname, playerRoomId, static_cast<float>(playerRoomOnWidgetCoordinates.x()), static_cast<float>(playerRoomOnWidgetCoordinates.y()), __Pick);
         painter.save();
         QPen transparentPen(Qt::transparent);
         QPainterPath myPath;
