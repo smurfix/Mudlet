@@ -58,7 +58,7 @@ private:
     QSettings* settings;
     std::unique_ptr<QTimer> mDailyCheck;
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     void setupOnLinux();
     void untarOnLinux(const QString& fileName);
 #elif defined(Q_OS_WIN32)
@@ -74,7 +74,7 @@ private:
     void finishSetup();
     void showDialogManually() const;
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     QString unzippedBinaryName;
 #elif defined(Q_OS_MACOS)
     AutoUpdater* msparkleUpdater;
@@ -89,7 +89,7 @@ signals:
 
 public slots:
     void installOrRestartClicked(QAbstractButton* button, const QString& filePath);
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // might want to make these private
     void updateBinaryOnLinux();
 #endif

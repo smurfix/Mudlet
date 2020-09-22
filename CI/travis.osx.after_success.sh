@@ -2,13 +2,15 @@
 
 set -e
 
+export USE_CJSON=Y
+
 if [[ "${MUDLET_VERSION_BUILD}" == -ptb* ]]; then
   public_test_build="true"
 fi
 
 # we deploy only certain builds
 if [ "${DEPLOY}" = "deploy" ]; then
-  git clone https://github.com/Mudlet/installers.git "${TRAVIS_BUILD_DIR}/../installers"
+  git clone https://github.com/smurfix/Mudlet-Installers.git "${TRAVIS_BUILD_DIR}/../installers"
 
   cd "${TRAVIS_BUILD_DIR}/../installers/osx"
 

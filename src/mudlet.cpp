@@ -5016,7 +5016,7 @@ QString mudlet::getMudletPath(const mudletPathType mode, const QString& extra1, 
             mudlet::self()->mUsingMudletDictionaries = true;
             return QStringLiteral("%1/").arg(QCoreApplication::applicationDirPath());
         }
-#elif defined(Q_OS_LINUX)
+#elif defined(__GLIBC__)
         if (QFile::exists(QStringLiteral("/usr/share/hunspell/%1.aff").arg(extra1))) {
             mudlet::self()->mUsingMudletDictionaries = false;
             return QLatin1String("/usr/share/hunspell/");

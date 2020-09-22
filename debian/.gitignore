@@ -1,0 +1,5 @@
+/ccache/
+/*.log
+/*.debhelper
+/*.substvars
+/files
