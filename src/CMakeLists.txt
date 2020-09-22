@@ -102,10 +102,12 @@ set(mudlet_SRCS
     TMxpEntityTagHandler.cpp
     TMxpFontTagHandler.cpp
     TMxpLinkTagHandler.cpp
+    TMxpMusicTagHandler.cpp
     TMxpNodeBuilder.cpp
     TMxpMudlet.cpp
     TMxpProcessor.cpp
     TMxpSendTagHandler.cpp
+    TMxpSoundTagHandler.cpp
     TMxpSupportTagHandler.cpp
     MxpTag.cpp
     TMxpTagHandler.cpp
@@ -230,6 +232,8 @@ set(mudlet_HDRS
     TMxpEntityTagHandler.h
     TMxpFontTagHandler.h
     TMxpLinkTagHandler.h
+    TMxpMusicTagHandler.h
+    TMxpSoundTagHandler.h
     TMxpElementDefinitionHandler.h
     TMxpElementRegistry.h
     TMxpContext.h
@@ -306,7 +310,6 @@ find_package(ZIP REQUIRED)
 find_package(Lua51 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(PCRE REQUIRED)
-find_package(YAJL REQUIRED)
 find_package(PUGIXML REQUIRED)
 find_package(HUNSPELL REQUIRED)
 find_package(Boost 1.44)
@@ -357,8 +360,6 @@ target_compile_definitions(mudlet
     LUA_DEFAULT_PATH="${LUA_DEFAULT_DIR}")
 
 if(USE_OWN_QT5KEYCHAIN)
-    # An extra definition is needed if we are using our own QtKeyChain to not
-    # export symbols from our self-built library:
     target_compile_definitions(mudlet PRIVATE INCLUDE_OWN_QT5_KEYCHAIN QTKEYCHAIN_NO_EXPORT)
 endif()
 
@@ -378,7 +379,6 @@ target_link_libraries(
   Qt5::OpenGL
   Qt5::UiTools
   Qt5::Widgets
-  YAJL::YAJL
   ZIP::ZIP
   ZLIB::ZLIB
   qt5keychain)
@@ -410,6 +410,12 @@ endif()
 if(WIN32)
   target_link_libraries(mudlet ws2_32)
   set_target_properties(mudlet PROPERTIES WIN32_EXECUTABLE ON)
+  if(USE_MAIN_BUILD_SYSTEM)
+    target_compile_definitions(mudlet PRIVATE INCLUDE_MAIN_BUILD_SYSTEM)
+  endif()
+  # The UNICODE and _UNICODE definitions are needed to make
+  # (QString) mudlet::getShortPathName(const QString& name) work in Windows:
+  target_compile_definitions(mudlet PRIVATE UNICODE _UNICODE)
 endif()
 
 if(APPLE)
