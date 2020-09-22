@@ -1,7 +1,7 @@
 origin/development
-cjson
+#cjson ## included in Debian
 debug
-get
+#get ## merged
 roomnames
 star
 debian
