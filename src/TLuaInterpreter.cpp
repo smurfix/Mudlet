@@ -15522,7 +15522,7 @@ void TLuaInterpreter::parseMSSP(const QString& string_data)
             QStringList payloadList = packageList[i].split(MSSP_VAL);
 
             if (payloadList.size() != 2) {
-                return;
+                continue;
             }
 
             QString msspVAR = payloadList[0];
