@@ -7376,6 +7376,7 @@ int TLuaInterpreter::debug(lua_State* L)
         // n == 1
         luaDebugText = QStringLiteral(" %1").arg(QString::fromUtf8(lua_tostring(L, 1)));
     }
+    qWarning() << luaDebugText;
     luaDebugText.append(QChar::LineFeed);
 
     if (host.mpEditorDialog) {
