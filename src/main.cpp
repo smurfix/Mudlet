@@ -193,14 +193,14 @@ int main(int argc, char* argv[])
         texts << QStringLiteral("       --dograb        ignore any implicit or explicit -nograb.\n"
                                 "                       --dograb wins over --nograb even when --nograb is last on\n"
                                 "                       the command line.\n");
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
         texts << QStringLiteral("       --nograb        the application should never grab the mouse or the\n"
                                 "                       keyboard. This option is set by default when Mudlet is\n"
                                 "                       running in the gdb debugger under Linux.\n");
-#else // ! defined(Q_OS_LINUX)
+#else // ! defined(__GLIBC__)
         texts << QStringLiteral("       --nograb        the application should never grab the mouse or the\n"
                                 "                       keyboard.\n");
-#endif // ! defined(Q_OS_LINUX)
+#endif // ! defined(__GLIBC__)
         texts << QStringLiteral("       --reverse       sets the application's layout direction to right to left.\n"
                                 "       --style= style  sets the application GUI style. Possible values depend on\n"
                                 "                       your system configuration. If Qt was compiled with\n"
@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
     if (!dir.exists(ubuntuFontDirectory)) {
         dir.mkpath(ubuntuFontDirectory);
     }
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // Only needed/works on Linux to provide color emojis:
     QString notoFontDirectory(QStringLiteral("%1/noto-color-emoji-2019-11-19-unicode12").arg(mudlet::getMudletPath(mudlet::mainFontsPath)));
     if (!dir.exists(notoFontDirectory)) {
@@ -406,11 +406,11 @@ int main(int argc, char* argv[])
     copyFont(ubuntuFontDirectory, QLatin1String("fonts/ubuntu-font-family-0.83"), QLatin1String("UbuntuMono-R.ttf"));
     copyFont(ubuntuFontDirectory, QLatin1String("fonts/ubuntu-font-family-0.83"), QLatin1String("UbuntuMono-RI.ttf"));
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     copyFont(notoFontDirectory, QStringLiteral("fonts/noto-color-emoji-2019-11-19-unicode12"), QStringLiteral("NotoColorEmoji.ttf"));
     copyFont(notoFontDirectory, QStringLiteral("fonts/noto-color-emoji-2019-11-19-unicode12"), QStringLiteral("LICENSE"));
     copyFont(notoFontDirectory, QStringLiteral("fonts/noto-color-emoji-2019-11-19-unicode12"), QStringLiteral("README"));
-#endif // defined(Q_OS_LINUX)
+#endif // defined(__GLIBC__)
 #endif // defined(INCLUDE_FONTS)
 
     mudlet::debugMode = false;
@@ -470,7 +470,7 @@ int main(int argc, char* argv[])
 #if !defined(Q_OS_MACOS)
     // Sparkle doesn't allow us to manually show the changelog, so leave it be for dblsqd only
     mudlet::self()->showChangelogIfUpdated();
-#endif // Q_OS_LINUX
+#endif // __GLIBC__
 #endif // INCLUDE_UPDATER
 
     QTimer::singleShot(2s, qApp, []() {

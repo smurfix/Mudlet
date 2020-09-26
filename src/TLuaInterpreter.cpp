@@ -80,7 +80,7 @@ const QMap<Qt::MouseButton, QString> TLuaInterpreter::mMouseButtons = {
 
 
 extern "C" {
-int luaopen_yajl(lua_State*);
+int luaopen_cjson(lua_State*);
 }
 
 #ifdef QT_TEXTTOSPEECH_LIB
@@ -3531,7 +3531,7 @@ int TLuaInterpreter::setFont(lua_State* L)
         font = QString::fromUtf8(lua_tostring(L, s));
     }
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // On Linux ensure that emojis are displayed in colour even if this font
     // doesn't support it:
     QFont::insertSubstitution(font, QStringLiteral("Noto Color Emoji"));
@@ -15062,7 +15062,7 @@ int TLuaInterpreter::getOS(lua_State* L)
     lua_pushstring(L, "windows");
 #elif defined(Q_OS_MACOS)
     lua_pushstring(L, "mac");
-#elif defined(Q_OS_LINUX)
+#elif defined(__GLIBC__)
     lua_pushstring(L, "linux");
 #elif defined(Q_OS_HURD)
     // One can hope/dream!
@@ -17564,7 +17564,7 @@ void TLuaInterpreter::initLuaGlobals()
     additionalCPaths << QStringLiteral("%1/?.so").arg(profilePath);
 #endif
 
-#if defined(Q_OS_LINUX)
+#if defined(__GLIBC__)
     // AppInstaller on Linux would like the C search path to also be set to
     // a ./lib sub-directory of the current binary directory:
     additionalCPaths << QStringLiteral("%1/lib/?.so").arg(appPath);
@@ -17636,7 +17636,7 @@ void TLuaInterpreter::initLuaGlobals()
         mpHost->postMessage(modLoadMessageQueue.dequeue());
     }
 
-    loadLuaModule(modLoadMessageQueue, QLatin1String("yajl"), tr("yajl.* Lua functions won't be available."), QString(), QLatin1String("yajl"));
+    loadLuaModule(modLoadMessageQueue, QLatin1String("cjson"), tr("cjson.* Lua functions won't be available."), QString(), QLatin1String("cjson"));
     while (!modLoadMessageQueue.isEmpty()) {
         mpHost->postMessage(modLoadMessageQueue.dequeue());
     }
@@ -17648,6 +17648,29 @@ void TLuaInterpreter::initLuaGlobals()
     tn = "channel102";
     set_lua_table(tn, args);
 
+    // create a "yajl" table with to_string/to_value entries
+    // for backwards compatiblity
+    if(! lua_checkstack(pGlobalLua, 5)) {
+        lua_settop(pGlobalLua, 0);
+        qDebug() << "CRITICAL ERROR: no memory?";
+        return;
+    }
+    lua_createtable(pGlobalLua, 0, 2);  // yajl
+
+    lua_getglobal (pGlobalLua, "cjson");  // yail cjson
+
+    lua_pushstring(pGlobalLua, "to_string");  // yail cjson "to_"
+    lua_getfield(pGlobalLua, -2, "encode");   // yail cjson "to_" enc
+    lua_settable(pGlobalLua, -4);
+
+    lua_pushstring(pGlobalLua, "to_value");
+    lua_getfield(pGlobalLua, -2, "decode");
+    lua_settable(pGlobalLua, -4);
+
+    lua_pop(pGlobalLua, 1); // yail
+    lua_setglobal (pGlobalLua, "yajl");
+
+    // clear the stack
     lua_settop(pGlobalLua, 0);  // initial setup
 
     //FIXME make function call in destructor lua_close(L);

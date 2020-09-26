@@ -1,0 +1,6 @@
+?package(mudlet):needs="X11" \
+  section="Games/Adventure"\
+  title="Mudlet MUD client" \
+  longtitle="Mudlet - Graphical MUD client with fast lua scripting support" \
+  command="/usr/games/mudlet" \
+  icon="/usr/share/pixmaps/mudlet.xpm"

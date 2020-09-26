@@ -1,0 +1,13 @@
+mudlet for Debian
+-----------------
+The source code is downloaded from the git repository as a snapshot. There
+are several directories which have programs that are shared libraries so
+to reduce the size of the package they are removed.
+
+Assuming your directory of the git upstream source is in a directory called
+upstream, the following command will make the original tar file:
+
+tar --exclude-vcs --exclude=src/yajl --exclude=src/hunspell --exclude=fonts --transform "s,^upstream/,mudlet-$VERSION/," -cvzf ./mudlet_$VERSION.orig.tar.gz upstream/*
+
+
+
