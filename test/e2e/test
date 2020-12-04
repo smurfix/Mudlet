@@ -102,6 +102,8 @@ class MudletTelnet(TelnetServer):
     async def setup(self):
         logger.info("Telnet link open.")
         await super().setup()
+        if self._charset is None:
+            await self.request_charset()
         logger.info("Telnet setup done.")
     pass
 
@@ -112,15 +114,20 @@ class TestMud:
     display = None
     tg = None
 
-    def __init__(self):
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.wait_up = trio.Event()
         self.wait_down = trio.Event()
+
+    async def _setup_stream(self):
+        # TODO set charset, ask about GMCP, whatever
+        pass
 
     async def with_telnet(self, stream):
         self.stream = stream
         await self._setup_stream()
 
-        if self.link is not None:
+        if self.link is not None or not self.cfg["mudpyc"]:
             self.wait_up.set()
 
         await self.wait_down.wait()
@@ -161,6 +168,10 @@ class TestMud:
 
     async def test(self):
         await self.stream.writeline("Setup complete.")
+        with trio.move_on_after(5):
+            while True:
+                inp = await self.stream.readline()
+                logger.debug("IN: %s", inp)
         await trio.sleep(5)
         await self.stream.writeline("Bye!")
 
@@ -188,11 +199,14 @@ Run Mudlet tests.
 """)
 @click.option("-c","--config", type=click.File("r"), help="Config file")
 @click.option("--display",type=int,default=42, help="X display# to use. Default: 42")
-async def main(display, config):
+@click.option("--no-mudpyc","-N",is_flag=True,help="don't start MudPyC")
+async def main(display, config, no_mudpyc):
     try:
-        test_mud = TestMud()
         cfg = {} if config is None else yaml.safe_load(config)
+        cfg["mudpyc"] = not no_mudpyc
         cfg = combine_dict(cfg, DefaultCfg)
+        test_mud = TestMud(cfg)
+
         if "HOME" not in os.environ:
             os.environ["HOME"] = os.path.abspath("./home")
         with open("config/profiles/LocalTest/port","w", encoding="utf-16-be") as f:
@@ -206,8 +220,9 @@ async def main(display, config):
             await tg.start(run_wm, tg, display)
 
             # (c) run the web server Mudlet will use to talk to MudPyC
-            s = WebServer(cfg, factory=partial(MudletLink,test_mud))
-            tg.start_soon(s.run)
+            if cfg['mudpyc']:
+                s = WebServer(cfg, factory=partial(MudletLink,test_mud))
+                tg.start_soon(s.run)
 
             # (d) run the telnet server that implements the TestMUD
             evt = anyio.create_event()
@@ -217,10 +232,10 @@ async def main(display, config):
             # (e) finally, we can start Mudlet!
             tg.start_soon(run_mudlet)
 
-            print("All set up!")
+            # (f) now run the actual test
             await test_mud.run(display)
 
-            await tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()
     except Exception as exc:
         logger.exception("Died.")
 

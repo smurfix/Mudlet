@@ -2,6 +2,6 @@
 anyio>=2,<3
 asyncclick>=7.1.2.3,<8
 mudpyc==0.1.5
-asynctelnet>=0.2.2
+asynctelnet>=0.2.3
 pyyaml
 pynput
