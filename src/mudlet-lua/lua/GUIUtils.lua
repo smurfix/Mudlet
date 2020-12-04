@@ -2119,13 +2119,16 @@ createButton = createLabel
 -- Internal function used by copy2html and copy2decho
 local function copy2color(name,win,str,inst)
   local line = getCurrentLine(win or "main")
+  display({"C0",win,line})
   if (not str and line == "ERROR: mini console does not exist") or type(str) == "number" then
     win, str, inst = "main", win, str
     line = getCurrentLine(win)
+    display({"C1",win,line})
   end
   win = win or "main"
   str = str or line
   inst = inst or 1
+  display({"C2",win,str})
   local start, len = selectString(win, str, inst), #str
   if not start then
     error(name..": string not found",3)

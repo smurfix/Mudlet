@@ -1,0 +1,24 @@
+This subdiretory contains (the beginning of) an end-to-end test for Mudlet.
+
+Principle of operation:
+
+* create a defined Debian chroot environment
+* build Mudlet
+* start a headless X server
+* start a Telnet server with some sort of test MUD in it
+* start a MudPyC server
+* start Mudlet, connect to the MUD server
+* auto-connect to the test MUD
+* cause Mudlet to connect to MudPyC (some trigger)
+* cause Mudlet to do things and check that it did them
+
+All of this is written in async Python.
+
+MudPyC connects to Mudlet using a bidirectional channel which can
+send and execute Lua scripts, call functions and return results, etc.
+
+Also, Lua can tell the Python side when something happened, e.g. a button
+click or an incoming text / GMCP message.
+
+The server interprets a file with a series of commands that cause it to do
+interesting things.

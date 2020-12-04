@@ -1,0 +1,5 @@
+venv/
+config/profiles/LocalTest/port
+config/profiles/LocalTest/log/*
+config/profiles/LocalTest/current/*
+home/cache/*

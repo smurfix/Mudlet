@@ -1,0 +1,72 @@
+#!/bin/bash
+
+set -u -o pipefail
+
+D=/tmp
+S=buster
+VD=base
+M=http://ftp.de.debian.org/debian/
+A=$(dpkg --print-architecture)
+
+usage() {
+	cat <<END >&2
+This program creates a Debian chroot environment.
+
+You need a working "sudo".
+
+Usage: $0 [options] [package …]
+-a ARCH     Architecture ($A)
+-m MIRROR   mirror to use ($M)
+-v VERSION  Build version ($VD)
+-s RELEASE  OS release ($S)
+-d DIR      Build in this directory ($D/VERSION/RELEASE/ARCH/)
+PACKAGE     additional package to install
+END
+        if test $# -gt 0 ; then
+                echo "$*" >&2
+        else
+                echo 'Terminating...' >&2
+        fi
+        exit 1
+}
+
+TEMP="$(getopt -o 'a:d:m:s:v:' -n "$(basename "$0")" -- "$@")"
+if [ $? -ne 0 ]; then usage; fi
+sudo true >/dev/null
+if [ $? -ne 0 ]; then echo 'You need a working "sudo".' >&2; fi
+
+eval set -- "$TEMP"
+unset TEMP
+while true ; do
+    case "$1" in
+	'-a')
+	    shift; A=$1; shift ;;
+	'-d')
+	    shift; B=$1; shift ;;
+	'-m')
+	    shift; M=$1; shift ;;
+	'-v')
+	    shift; V=$1; VD=$1; shift ;;
+	'-s')
+	    shift; S=$1; shift ;;
+        '--')
+	    shift; break ;;
+        *)
+            usage "Unknown argument '$1'"
+    esac
+done
+
+
+if ! test -v B ; then B=$D/$VD/$S/$A; fi
+
+export LC_ALL=C.UTF-8
+
+set -ex
+mkdir -p "$B"
+test -d "$B"/etc || sudo debootstrap --arch=$A ${V:+--variant=$V} $S "$B" $M
+
+sudo chroot "$B" apt update
+sudo chroot "$B" apt -o APT::Install-Recommends=false -o APT::Get::Assume-Yes=true install eatmydata
+sudo chroot "$B" eatmydata apt -o APT::Install-Recommends=false -o APT::Get::Assume-Yes=true dist-upgrade
+sudo chroot "$B" eatmydata apt -o APT::Install-Recommends=false -o APT::Get::Assume-Yes=true install build-essential devscripts equivs gnupg $@
+
