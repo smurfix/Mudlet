@@ -5,11 +5,12 @@ set -u -o pipefail
 usage() {
 	cat <<END >&2
 This program creates a Debian chroot environment to run Mudlet in.
-It builds Mudlet, starts an X server, starts a MUD, starts Mudlet,
+It builds Mudlet, starts an X server, starts a test MUD, starts Mudlet,
 and then plays with things.
 
 This script requires an installed "debootstrap" program.
-You also need a working "sudo".
+You also need a working "sudo". If you want to use a chroot environment,
+you also need "systemd-nspawn".
 
 Usage: $0 [options] [-d DIR] [opts] [test …]
 -d DIR  Create the chroot environment here
@@ -25,7 +26,7 @@ END
 }
 
 if [ $# -gt 0 ] && [ "$1" == "-d" ] ; then
-    B="$2"
+    D="$2"
     shift;shift
 fi
 
@@ -35,7 +36,7 @@ set -e
 if test -v D ; then  # run in chroot
     sudo true >/dev/null
     mkdir -p "$D"
-    "$(dirname "$0")"/mkchroot -d "$D" -m http://mirror.noris.net/debian -v minbase \
+    "$(dirname "$0")"/mkchroot -d "$D" -m http://ftp.de.debian.org/debian -v minbase \
         python3-venv python3-pip \
         tightvncserver xserver-xephyr xdotool xinput xwd x11-apps ratpoison scrot \
         libpcre3-dev zlib1g-dev libboost-dev libhunspell-dev libpugixml-dev qtbase5-dev \
@@ -45,7 +46,7 @@ if test -v D ; then  # run in chroot
     HERE="$(/bin/pwd)"
     cd "$D"
     D="$(/bin/pwd)"  # now absolute path
-    R='sudo chroot "$D"'
+    R='sudo systemd-nspawn -d "$D" --bind=/tmp'
     M="$D/mudlet"
     if ! $R true ; then
         echo "Cannot run commands in '$D'. Terminating." >&2
@@ -66,7 +67,15 @@ if test -v D ; then  # run in chroot
     fi
     exec $R /bin/bash $DD/test/e2e/run "$@"
 
-else  # run locally. Assume installed vncserver and whatnot.
+else  # run locally. Assume installed vncserver, xephyr, ratpoison, scrot.
+    find() {
+        if type -p "$1" >/dev/null 2>&1 ; then : ; else
+            usage "$1: not found"
+        fi
+    }
+    find Xephyr
+    find scrot
+    find ratpoison
 
     cd "$(dirname "$0")"
     cd "$(git rev-parse --show-toplevel)"

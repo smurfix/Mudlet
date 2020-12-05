@@ -14,228 +14,26 @@ from mudpyc.util import combine_dict
 from asynctelnet import BaseServer as TelnetServer, server_loop
 from contextlib import asynccontextmanager
 
+from mudtest.env import TestEnv
+
 # import pynput
 ## requires DISPLAY envvar, so do that later
 
 import logging
 logger = logging.getLogger("mudlet")
 
-def locktest(lockfile):
-    try:
-        with open(lockfile, "r") as lock:
-            pid = int(lock.read(20))
-    except EnvironmentError as err:
-        if err.errno != errno.ENOENT:
-            raise
-        return False
-    else:
-        try:
-            os.kill(pid, 0)
-        except EnvironmentError as err:
-            if err.errno != errno.ESRCH:
-                raise
-            return False
-        else:
-            return True
-
-async def run_x(tg, display, *, task_status=trio.TASK_STATUS_IGNORED):
-    lockfile = "/tmp/.X%d-lock" % display
-    if locktest(lockfile):
-        raise RuntimeError("There's already an X server on display %d!" % display)
-        
-    if "DISPLAY" in os.environ:
-        logger.info("Starting nested X server.")
-        tg.start_soon(partial(trio.run_process, ["Xephyr","-screen","1200x1000x16",":"+str(display)], stdout=sys.stdout, stderr=sys.stderr))
-    else:
-        logger.info("Starting X vnc server.")
-        tg.start_soon(partial(trio.run_process, ["Xtightvnc","-geometry","1200x1000","-depth","16",":"+str(display)], stdout=sys.stdout, stderr=sys.stderr))
-
-    try:
-        with trio.fail_after(5):
-            while True:
-                if not locktest(lockfile):
-                    await trio.sleep(0.1)
-                    continue
-                if os.path.exists("/tmp/.X11-unix/X%d"%display):
-                    break
-                await trio.sleep(0.1)
-        task_status.started()
-        await trio.sleep(99999)
-    finally:
-        pass
-#        async with trio.move_on_after(3) as cs:
-#        cs.shield = True
-#            await trio.run_process(["vncserver","-kill",":"+str(display)])
-
-async def run_wm(tg, display, *, task_status=trio.TASK_STATUS_IGNORED):
-    logger.info("Starting minimal display manager.")
-    err = None
-    async def wm():
-        global err
-        try:
-            await trio.run_process(["ratpoison","-d",":%d"%display], stdout=sys.stdout, stderr=sys.stderr)
-        except subprocess.CalledProcessError as e:
-            err = e
-    tg.start_soon(wm)
-
-    # TODO figure out how to determine whether the WM is running
-    await trio.sleep(1)
-    task_status.started()
-
-    # stupid heuristic
-    await trio.sleep(5)
-    if err is not None:
-        raise err
-
-
-class MudletLink(MudpycServer):
-    def __init__(self, mud):
-        logger.info("Starting Python link server.")
-        self.mud = mud
-        super().__init__(name="MudletTester", cfg={})
-    
-
-class MudletTelnet(TelnetServer):
-    def __init__(self, mud, *a, **kw):
-        self.mud = mud
-        super().__init__(*a, **kw)
-    async def setup(self):
-        logger.info("Telnet link open.")
-        await super().setup()
-        if self._charset is None:
-            await self.request_charset()
-        logger.info("Telnet setup done.")
-    pass
-
-
-class TestMud:
-    stream = None
-    link = None
-    display = None
-    tg = None
-
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.wait_up = trio.Event()
-        self.wait_down = trio.Event()
-
-    async def _setup_stream(self):
-        # TODO set charset, ask about GMCP, whatever
-        pass
-
-    async def with_telnet(self, stream):
-        self.stream = stream
-        await self._setup_stream()
-
-        if self.link is not None or not self.cfg["mudpyc"]:
-            self.wait_up.set()
-
-        await self.wait_down.wait()
-
-    async def with_link(self, link):
-        self.link = link
-        await self._setup_link()
-        if self.stream is not None:
-            self.wait_up.set()
-
-        await self.wait_down.wait()
-
-    @asynccontextmanager
-    async def x_monitor(self, *, task_status=trio.TASK_STATUS_IGNORED):
-        """
-        Watch X11 events. Required for mouse click/drag monitoring
-        """
-        import pynput
-        q_w,q_r = trio.open_memory_channel(100)
-
-        def on_move(x, y):
-            trio.from_thread.run(q_w.put,("m",x,y,None,None))
-        def on_click(x, y, button, pressed):
-            trio.from_thread.run(q_w.put,("c",x,y,button,pressed))
-        def on_scroll(x, y, dx, dy):
-            trio.from_thread.run(q_w.put,("s",x,y,dx,dy))
-
-        listener = mouse.Listener(
-            on_move=on_move,
-            on_click=on_click,
-            on_scroll=on_scroll)
-        tg.start_soon(trio.to_thread.run_sync,listener.start)
-        try:
-            yield q_r
-        finally:
-            listener.stop()
-
-
-    async def test(self):
-        await self.stream.writeline("Setup complete.")
-        with trio.move_on_after(5):
-            while True:
-                inp = await self.stream.readline()
-                logger.debug("IN: %s", inp)
-        await trio.sleep(5)
-        await self.stream.writeline("Bye!")
-
-    async def run(self, display:int):
-        try:
-            async with trio.open_nursery() as tg:
-                self.tg = tg
-                logger.info("Waiting for connection")
-                await self.wait_up.wait()
-                logger.info("Finally! Testing!")
-                await self.test()
-        finally:
-            self.wait_down.set()
-
-async def run_mudlet():
-    await trio.run_process(["../../src/mudlet"])
-    raise SystemExit(0)
-
-DefaultCfg = dict(
-    name="MudletTest",
-)
-
 @click.command(help="""\
 Run Mudlet tests.
 """)
 @click.option("-c","--config", type=click.File("r"), help="Config file")
 @click.option("--display",type=int,default=42, help="X display# to use. Default: 42")
-@click.option("--no-mudpyc","-N",is_flag=True,help="don't start MudPyC")
-async def main(display, config, no_mudpyc):
+@click.argument("script",nargs=1)
+async def main(display, config, script):
     try:
         cfg = {} if config is None else yaml.safe_load(config)
-        cfg["mudpyc"] = not no_mudpyc
-        cfg = combine_dict(cfg, DefaultCfg)
-        test_mud = TestMud(cfg)
-
-        if "HOME" not in os.environ:
-            os.environ["HOME"] = os.path.abspath("./home")
-        with open("config/profiles/LocalTest/port","w", encoding="utf-16-be") as f:
-            print("\0\n"+str(50000+display),end="",file=f);
-        async with trio.open_nursery() as tg:
-            # (a) create an X server
-            await tg.start(run_x, tg, display)
-            os.environ["DISPLAY"] = ":%d"%display
-
-            # (b) run a window manager
-            await tg.start(run_wm, tg, display)
-
-            # (c) run the web server Mudlet will use to talk to MudPyC
-            if cfg['mudpyc']:
-                s = WebServer(cfg, factory=partial(MudletLink,test_mud))
-                tg.start_soon(s.run)
-
-            # (d) run the telnet server that implements the TestMUD
-            evt = anyio.create_event()
-            tg.start_soon(partial(server_loop,evt=evt,protocol_factory=partial(MudletTelnet,test_mud), port=50000+display, shell=test_mud.with_telnet))
-            await evt.set()
-
-            # (e) finally, we can start Mudlet!
-            tg.start_soon(run_mudlet)
-
-            # (f) now run the actual test
-            await test_mud.run(display)
-
-            tg.cancel_scope.cancel()
+        test_mud = TestEnv(cfg)
+        os.environ["HOME"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]),"./home"))
+        await test_mud.main(script)
     except Exception as exc:
         logger.exception("Died.")
 
